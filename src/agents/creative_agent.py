@@ -188,6 +188,38 @@ class CreativeAgent:
     # MAIN OUTPUT FUNCTION
     # -----------------------------------------------------------------
     def create_output(self, insights: Dict[str, Any], plan: List[str]):
+                # 🎅 Pure creative fallback when no insights provided
+        if not insights:
+            logger.info("CreativeAgent: Generating promotional creatives without insights")
+
+            variants = [
+                {
+                    "id": f"creative_xmas_{uuid.uuid4().hex[:6]}",
+                    "headline": "🎄 Christmas Mega Sale — Flat 50% OFF!",
+                    "body": "Gifts, gadgets & festive must-haves! Limited time offer 🎅 Shop Now!",
+                    "format": "image"
+                },
+                {
+                    "id": f"creative_xmas_{uuid.uuid4().hex[:6]}",
+                    "headline": "Unwrap Big Savings This Christmas 🎁",
+                    "body": "Exclusive holiday deals are live — don’t miss out! ❄️",
+                    "format": "video_short"
+                },
+                {
+                    "id": f"creative_xmas_{uuid.uuid4().hex[:6]}",
+                    "headline": "Festive Deals You Can’t Resist ⭐",
+                    "body": "Make your wishlist come true today! ✨",
+                    "format": "carousel"
+                }
+            ]
+
+            return {
+                "status": "ok",
+                "summary": "Generated festive creative-only content",
+                "variants": variants,
+                "meta": {"n_variants": len(variants)}
+            }
+
         if "error" in insights:
             return {"status": "error", "message": insights["error"], "variants": []}
 

@@ -24,37 +24,52 @@ class Orchestrator:
         logger.info("Starting orchestration for task: %s", user_task)
 
         # Planner
+               # Planner
         t0 = time()
         try:
             plan = self.planner.create_plan(user_task)
+            is_creative_only = plan == ["generate_creatives"]  # 👈 MUST be on same indent as plan
             run_meta["agent_traces"]["planner"] = {"status": "ok", "output_summary": plan}
         except Exception as e:
             run_meta["agent_traces"]["planner"] = {"status": "error", "error": str(e)}
             plan = []
+            is_creative_only = False  # fallback safety
         run_meta["timing"]["planner_s"] = round(time() - t0, 3)
 
-        # DataAgent
+
+         # DataAgent
         t0 = time()
-        try:
-            data_package = self.data_agent.collect_data(plan, user_task)
-            run_meta["agent_traces"]["data"] = {
-                "status": data_package.get("status"),
-                "source": data_package.get("source"),
-                "meta": data_package.get("meta", {})
-            }
-        except Exception as e:
-            data_package = {"status": "failed", "data": None, "errors": [str(e)], "meta": {}}
-            run_meta["agent_traces"]["data"] = {"status": "error", "error": str(e)}
+        if not is_creative_only:
+            try:
+                data_package = self.data_agent.collect_data(plan, user_task)
+                run_meta["agent_traces"]["data"] = {
+                    "status": data_package.get("status"),
+                    "source": data_package.get("source"),
+                    "meta": data_package.get("meta", {})
+                }
+            except Exception as e:
+                data_package = {"status": "failed", "data": None, "errors": [str(e)], "meta": {}}
+                run_meta["agent_traces"]["data"] = {"status": "error", "error": str(e)}
+        else:
+            data_package = {"status": "skipped", "data": None, "meta": {}}
+            run_meta["agent_traces"]["data"] = {"status": "skipped"}
         run_meta["timing"]["data_s"] = round(time() - t0, 3)
 
         # InsightAgent
         t0 = time()
-        try:
-            insights = self.insight_agent.generate_insights(data_package)
-            run_meta["agent_traces"]["insights"] = {"status": "ok", "summary_keys": list(insights.keys())}
-        except Exception as e:
-            insights = {"error": str(e)}
-            run_meta["agent_traces"]["insights"] = {"status": "error", "error": str(e)}
+        if not is_creative_only:
+            try:
+                insights = self.insight_agent.generate_insights(data_package)
+                run_meta["agent_traces"]["insights"] = {
+                    "status": "ok",
+                    "summary_keys": list(insights.keys())
+                }
+            except Exception as e:
+                insights = {"error": str(e)}
+                run_meta["agent_traces"]["insights"] = {"status": "error", "error": str(e)}
+        else:
+            insights = {}
+            run_meta["agent_traces"]["insights"] = {"status": "skipped"}
         run_meta["timing"]["insights_s"] = round(time() - t0, 3)
 
         # CreativeAgent
